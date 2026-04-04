@@ -13,9 +13,22 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
 
-app.use(cors());
+// ✅ THE FIX: Strict Socket.io CORS configuration (Allows WebSocket traffic)
+const io = new Server(server, { 
+    cors: { 
+        origin: "https://bugbuster-two.vercel.app", 
+        methods: ["GET", "POST"],
+        credentials: true
+    } 
+});
+
+// ✅ THE FIX: Strict Express CORS configuration (Allows standard Login/Register traffic)
+app.use(cors({
+    origin: "https://bugbuster-two.vercel.app",
+    credentials: true
+}));
+
 app.use(express.json());
 
 // Routes
