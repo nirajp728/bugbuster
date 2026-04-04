@@ -19,55 +19,50 @@ const parseMessage = (raw) => {
 };
 
 export const initSerialSockets = (io) => {
+    const portName = process.env.COM_PORT;
+
+    // 1. Auto-connect to the STM32 board when the backend server starts
+    if (portName && !activePort) {
+        activePort = new SerialPort({ path: portName, baudRate: 115200 }, (err) => {
+            if (err) {
+                console.error(`[SERIAL] Failed to connect to ${portName}:`, err.message);
+            } else {
+                console.log(`[SERIAL] Successfully auto-connected to ${portName}`);
+            }
+        });
+
+        // Use the same delimiter your Python code used
+        const parser = activePort.pipe(new ReadlineParser({ delimiter: ';' }));
+        
+        // 2. Listen to hardware ONCE globally, and broadcast to all connected web clients
+        parser.on('data', (data) => {
+            const msg = parseMessage(data);
+            // io.emit blasts the data to all connected React frontends instantly
+            if (msg) io.emit('stm32-data', msg); 
+        });
+    } else if (!portName) {
+        console.warn("[SERIAL] No COM_PORT defined in .env file. Please add it!");
+    }
+
+    // 3. Handle incoming WebSocket connections from your Vercel frontend
     io.on('connection', (socket) => {
         console.log('Client connected via WebSocket');
 
-        // List Ports
-        socket.on('get-ports', async () => {
-            try {
-                const ports = await SerialPort.list();
-                socket.emit('ports-list', ports.map(p => p.path));
-            } catch (err) {
-                socket.emit('serial-error', 'Failed to list ports');
-            }
+        // Optional: Instantly tell the frontend if the hardware is currently connected
+        socket.emit('serial-status', { 
+            connected: activePort ? activePort.isOpen : false, 
+            path: portName 
         });
 
-        // Connect to STM32
-        socket.on('connect-port', (path) => {
-            if (activePort && activePort.isOpen) {
-                activePort.close();
-            }
-            
-            activePort = new SerialPort({ path, baudRate: 115200 }, (err) => {
-                if (err) {
-                    socket.emit('serial-error', err.message);
-                } else {
-                    socket.emit('serial-status', { connected: true, path });
-                }
-            });
-
-            const parser = activePort.pipe(new ReadlineParser({ delimiter: ';' }));
-            
-            parser.on('data', (data) => {
-                const msg = parseMessage(data);
-                if (msg) socket.emit('stm32-data', msg);
-            });
-        });
-
-        // Disconnect
-        socket.on('disconnect-port', () => {
-            if (activePort && activePort.isOpen) {
-                activePort.close();
-            }
-            socket.emit('serial-status', { connected: false });
-        });
-
-        // Send Command to STM32
+        // 4. Send Command to STM32 when the green SEND buttons are clicked
         socket.on('send-command', (cmd) => {
             if (activePort && activePort.isOpen) {
                 activePort.write(cmd, (err) => {
-                    if (err) socket.emit('serial-error', 'Write failed');
+                    if (err) console.error('[SERIAL] Write failed:', err);
                 });
+            } else {
+                // Send an error back to the specific user if the board got unplugged
+                socket.emit('serial-error', 'Hardware is not connected to the backend laptop');
             }
         });
     });

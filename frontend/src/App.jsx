@@ -36,7 +36,6 @@ export default function App() {
                     <Route path="/" element={<Multimeter socket={socket} />} />
                     <Route path="/function-gen" element={<FunctionGen socket={socket} />} />
                     <Route path="/voltage-reg" element={<VoltageReg socket={socket} />} />
-                    <Route path="/connection" element={<Connection socket={socket} />} />
                 </Routes>
             </Layout>
         </BrowserRouter>

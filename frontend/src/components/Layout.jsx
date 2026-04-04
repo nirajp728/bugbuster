@@ -7,7 +7,6 @@ export default function Layout({ children, setToken }) {
         { path: '/', label: 'Multimeter', icon: <Activity /> },
         { path: '/function-gen', label: 'Function Gen', icon: <AudioWaveform /> }, // <-- Updated here
         { path: '/voltage-reg', label: 'Voltage Reg', icon: <Battery /> },
-        { path: '/connection', label: 'Connection', icon: <Plug /> },
     ];
 
     const handleLogout = () => {
