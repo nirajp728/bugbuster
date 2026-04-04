@@ -8,10 +8,10 @@ export default function Layout({ children, setToken }) {
     // Updated Navigation Items to include Dashboard and Sessions
     const navItems = [
         { path: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-        { path: '/sessions', label: 'Past Sessions', icon: <History size={20} /> },
         { path: '/multimeter', label: 'Multimeter', icon: <Activity size={20} /> },
         { path: '/function-gen', label: 'Function Gen', icon: <AudioWaveform size={20} /> },
         { path: '/voltage-reg', label: 'Voltage Reg', icon: <Battery size={20} /> },
+        { path: '/sessions', label: 'Past Sessions', icon: <History size={20} /> },
     ];
 
     const handleLogout = () => {
