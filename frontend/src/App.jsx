@@ -8,7 +8,6 @@ import Layout from './components/Layout';
 import Multimeter from './pages/Multimeter';
 import FunctionGen from './pages/FunctionGen';
 import VoltageReg from './pages/VoltageReg';
-import Connection from './pages/Connection';
 
 // Create a global socket instance
 const API_URL = import.meta.env.VITE_BACKEND_URL;

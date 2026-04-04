@@ -1,19 +1,19 @@
 import nodemailer from 'nodemailer';
 
-// Configure the email transport using the credentials from .env
-const transporter = nodemailer.createTransport({
-    service: 'gmail', // Change this if you are using Outlook, Yahoo, etc.
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
-
 export const sendAuthEmail = async (toEmail, type, userName = 'User') => {
+    
+    // 1. Move the transporter INSIDE the function
+    const transporter = nodemailer.createTransport({
+        service: 'gmail', 
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
     let subject = '';
     let htmlContent = '';
 
-    // Define the email content based on the action (Login vs Register)
     if (type === 'register') {
         subject = 'Welcome to STM32 Lab! 🚀';
         htmlContent = `
