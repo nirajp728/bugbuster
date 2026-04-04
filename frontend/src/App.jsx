@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { io } from 'socket.io-client';
 
 import Login from './pages/Login';
@@ -11,7 +11,13 @@ import VoltageReg from './pages/VoltageReg';
 
 // Create a global socket instance
 const API_URL = import.meta.env.VITE_BACKEND_URL;
-export const socket = io(`${API_URL}`);
+
+// ✅ THE FIX: Added extraHeaders to bypass Ngrok's anti-abuse browser warning
+export const socket = io(`${API_URL}`, {
+    extraHeaders: {
+        "ngrok-skip-browser-warning": "true"
+    }
+});
 
 export default function App() {
     const [token, setToken] = useState(localStorage.getItem('token'));
