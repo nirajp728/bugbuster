@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
-import { Play, Pause, Circle, Square, Zap, Thermometer, Activity, Settings, Wifi, WifiOff } from 'lucide-react';
-import STM32Model from '../components/STM32Model'; 
+import { useState, useEffect, useRef } from 'react';
+import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, CartesianGrid, ReferenceLine } from 'recharts';
+import { Play, Pause, Circle, Square, Zap, Thermometer, Activity, Settings, Wifi, WifiOff, Sparkles, X } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai'; // Imported Gemini SDK
 
 export default function Dashboard({ socket }) {
     const [reading, setReading] = useState('0.00');
@@ -20,8 +19,10 @@ export default function Dashboard({ socket }) {
     const [freq, setFreq] = useState(100);
     const [vOut, setVOut] = useState(0);
 
-    // 3D & Haptic States
-    const [isSending, setIsSending] = useState(false);
+    // AI Inference States
+    const [aiAnalysis, setAiAnalysis] = useState("");
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
     const lastVibrate = useRef(0);
 
     useEffect(() => {
@@ -61,9 +62,7 @@ export default function Dashboard({ socket }) {
 
     const sendCmd = (cmd) => {
         triggerHaptic();
-        setIsSending(true); 
         socket.emit('send-command', cmd);
-        setTimeout(() => setIsSending(false), 600); 
     };
 
     const toggleRecording = () => {
@@ -75,36 +74,53 @@ export default function Dashboard({ socket }) {
         }
     };
 
+    // --- AI INFERENCE LOGIC ---
+    const analyzeHardware = async () => {
+        setIsAnalyzing(true);
+        setAiAnalysis("Extracting telemetry buffer and consulting AI Model...");
+        triggerHaptic();
+        
+        try {
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            if (!apiKey) throw new Error("Missing API Key");
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            // Extract just the voltage values from the recent buffer
+            const voltageArray = chartData.map(d => d.v.toFixed(2));
+
+            const prompt = `
+            You are an expert embedded systems engineer monitoring a live STM32 microcontroller.
+            Here is a snapshot of the current hardware state:
+            - Mode: ${mode === 'A' ? 'Ammeter' : 'Voltmeter'}
+            - System Temperature: ${temp}°C
+            - Target Frequency: ${freq}Hz
+            - Regulator Output: ${vOut}V
+            - Last 60 Data Readings: [${voltageArray.join(', ')}]
+            
+            Analyze this data. Is the temperature dangerous (>60C)? Are the readings stable or noisy? 
+            Provide a professional, highly technical 2-sentence diagnosis. Do not use markdown.
+            `;
+
+            const result = await model.generateContent(prompt);
+            setAiAnalysis(result.response.text());
+        } catch (error) {
+            console.error(error);
+            setAiAnalysis("AI Diagnostic failed. Please ensure VITE_GEMINI_API_KEY is set in your .env file.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-24 lg:pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
-            {/* LEFT COLUMN: 3D MODEL & TELEMETRY */}
+            {/* LEFT COLUMN: TELEMETRY & CONTROLS */}
             <div className="lg:col-span-4 space-y-6">
                 
-                {/* 3D DIGITAL TWIN STAGE */}
-                <div className="h-64 w-full bg-[#0d1117] rounded-2xl border border-gray-800 relative overflow-hidden shadow-inner group">
-                    <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-[#161b22] px-2 py-1 rounded border border-gray-800">
-                            Digital Twin v1.0
-                        </span>
-                    </div>
-
-                    <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-gray-600 font-mono text-xs">Initializing GPU...</div>}>
-                        <Canvas camera={{ position: [0, 5, 10], fov: 35 }}>
-                            <ambientLight intensity={0.5} />
-                            <pointLight position={[10, 10, 10]} intensity={1.5} />
-                            <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} />
-                            
-                            <STM32Model temp={parseFloat(temp) || 25} isSending={isSending} />
-                            
-                            <gridHelper args={[20, 40, '#1f2937', '#111827']} position={[0, -2, 0]} />
-                        </Canvas>
-                    </Suspense>
-                </div>
-
                 {/* Main Readout Card */}
-                <div className="bg-[#161b22] border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center relative shadow-2xl overflow-hidden group">
+                <div className="bg-[#161b22] border border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center relative shadow-2xl overflow-hidden group">
                     <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[100px] transition-colors duration-1000 opacity-20 ${mode === 'A' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
                     
                     <div className="absolute top-4 left-4 flex items-center gap-2">
@@ -123,56 +139,58 @@ export default function Dashboard({ socket }) {
                         ))}
                     </div>
 
-                    <h1 className={`text-7xl font-mono font-black tracking-tighter transition-all duration-300 relative z-10 ${mode === 'A' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                    <h1 className={`text-8xl font-mono font-black tracking-tighter transition-all duration-300 relative z-10 ${mode === 'A' ? 'text-blue-400' : 'text-emerald-400'}`}>
                         {reading}
                     </h1>
-                    <span className="text-gray-500 font-bold uppercase tracking-[0.4em] text-[9px] mt-2 relative z-10">
+                    <span className="text-gray-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4 relative z-10">
                         {mode === 'A' ? 'Amperes (I)' : 'Volts (DC)'}
                     </span>
                 </div>
 
-                {/* Health & Controls (Condensed) */}
+                {/* Health Metrics */}
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#161b22] border border-gray-800 p-4 rounded-xl flex items-center gap-4">
+                    <div className="bg-[#161b22] border border-gray-800 p-4 rounded-xl flex items-center gap-4 hover:border-red-500/30 transition-colors">
                         <Thermometer size={18} className={parseFloat(temp) > 50 ? "text-red-500 animate-bounce" : "text-gray-500"}/>
                         <div>
-                            <p className="text-[9px] text-gray-500 uppercase font-black">Thermal</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">Thermal</p>
                             <p className="font-mono font-bold text-sm text-gray-200">{temp}°C</p>
                         </div>
                     </div>
-                    <div className="bg-[#161b22] border border-gray-800 p-4 rounded-xl flex items-center gap-4">
+                    <div className="bg-[#161b22] border border-gray-800 p-4 rounded-xl flex items-center gap-4 hover:border-amber-500/30 transition-colors">
                         <Zap size={18} className="text-amber-500"/>
                         <div>
-                            <p className="text-[9px] text-gray-500 uppercase font-black">V-Boost</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">V-Boost</p>
                             <p className="font-mono font-bold text-sm text-amber-500">{boost}V</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-[#161b22] border border-gray-800 p-6 rounded-2xl space-y-4 shadow-inner">
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-[10px] font-bold uppercase">
-                                <span className="text-gray-400">Freq</span>
+                {/* Control Deck */}
+                <div className="bg-[#161b22] border border-gray-800 p-6 rounded-2xl space-y-6 shadow-inner">
+                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2"><Settings size={14}/> Control Deck</h3>
+                    <div className="space-y-6">
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-bold uppercase">
+                                <span className="text-gray-400">Frequency</span>
                                 <span className="text-emerald-500 font-mono">{freq} Hz</span>
                             </div>
                             <input type="range" min="0" max="1000" value={freq} 
                                 onChange={(e) => setFreq(e.target.value)} 
                                 onMouseUp={() => sendCmd(`#WAVE:F=${freq};`)}
                                 onTouchEnd={() => sendCmd(`#WAVE:F=${freq};`)}
-                                className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
                             />
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-[10px] font-bold uppercase">
-                                <span className="text-gray-400">Reg</span>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-bold uppercase">
+                                <span className="text-gray-400">Regulator</span>
                                 <span className="text-blue-500 font-mono">{vOut} V</span>
                             </div>
                             <input type="range" min="0" max="12" step="0.1" value={vOut} 
                                 onChange={(e) => setVOut(e.target.value)} 
                                 onMouseUp={() => sendCmd(`#VREG:V=${vOut};`)}
                                 onTouchEnd={() => sendCmd(`#VREG:V=${vOut};`)}
-                                className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500" 
                             />
                         </div>
                     </div>
@@ -180,15 +198,39 @@ export default function Dashboard({ socket }) {
             </div>
 
             {/* RIGHT COLUMN: OSCILLOSCOPE */}
-            <div className="lg:col-span-8 bg-[#161b22] border border-gray-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl min-h-[500px]">
+            <div className="lg:col-span-8 bg-[#161b22] border border-gray-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl min-h-[500px] relative">
+                
+                {/* AI Overlay Panel */}
+                {aiAnalysis && (
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 w-[90%] md:w-[70%] bg-[#0d1117]/95 backdrop-blur-xl border border-purple-500/50 p-5 rounded-xl shadow-[0_0_30px_rgba(168,85,247,0.15)] text-sm font-mono text-purple-200 leading-relaxed animate-in slide-in-from-top-4 duration-300">
+                        <span className="text-purple-400 font-black uppercase tracking-widest mr-3 flex items-center gap-2 mb-2">
+                            <Sparkles size={14} className="animate-pulse" /> AI System Diagnosis
+                        </span> 
+                        {aiAnalysis}
+                        <button onClick={() => setAiAnalysis("")} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
+
                 <div className="p-4 bg-[#1c2128] border-b border-gray-800 flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-4">
                         <Activity size={16} className="text-emerald-500" />
                         <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Oscilloscope Monitor</h3>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button onClick={toggleRecording} 
-                            className={`p-2 rounded-xl transition-all border ${isLogging ? 'bg-red-500 border-red-400 text-white animate-pulse' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
+                        
+                        {/* AI DIAGNOSE BUTTON */}
+                        <button onClick={analyzeHardware} disabled={isAnalyzing || chartData.length === 0}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border flex items-center gap-2 ${
+                                isAnalyzing ? 'bg-purple-500/20 border-purple-500 text-purple-400 animate-pulse' : 'bg-[#0d1117] border-purple-500/30 text-purple-400 hover:border-purple-500 hover:bg-purple-500/10'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}>
+                            <Sparkles size={12} />
+                            {isAnalyzing ? 'Analyzing...' : 'AI Diagnose'}
+                        </button>
+
+                        <button onClick={toggleRecording} title="Record Session"
+                            className={`p-2 rounded-xl transition-all border ${isLogging ? 'bg-red-500 border-red-400 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#0d1117] border-gray-700 text-gray-400 hover:border-red-500/50'}`}>
                             {isLogging ? <Square size={16} fill="white" /> : <Circle size={16} fill="currentColor" />}
                         </button>
 
@@ -200,7 +242,7 @@ export default function Dashboard({ socket }) {
 
                         <button onClick={() => setIsFrozen(!isFrozen)} 
                             className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border flex items-center gap-2 ${
-                                isFrozen ? 'bg-amber-500 border-amber-400 text-black' : 'bg-gray-800 border-gray-700 text-gray-400'
+                                isFrozen ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-[#0d1117] border-gray-700 text-gray-400 hover:border-gray-500'
                             }`}>
                             {isFrozen ? <Play size={12} fill="black" /> : <Pause size={12} />}
                             {isFrozen ? 'Live' : 'Freeze'}
@@ -213,9 +255,26 @@ export default function Dashboard({ socket }) {
                         <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
                             <XAxis dataKey="t" hide />
-                            <YAxis domain={[0, mode === 'A' ? 'auto' : 15]} stroke="#4b5563" fontSize={10} tickFormatter={(val) => `${val}${mode === 'A' ? 'A' : 'V'}`} />
-                            <ReferenceLine y={triggerLevel} stroke="#f59e0b" strokeDasharray="3 3" label={{ position: 'right', value: 'TRG', fill: '#f59e0b', fontSize: 9, fontWeight: 'bold' }} />
-                            <Line type="monotone" dataKey="v" stroke={mode === 'A' ? '#60a5fa' : '#10b981'} strokeWidth={3} dot={false} isAnimationActive={false} />
+                            <YAxis 
+                                domain={[0, mode === 'A' ? 'auto' : 15]} 
+                                stroke="#4b5563" 
+                                fontSize={10} 
+                                tickFormatter={(val) => `${val}${mode === 'A' ? 'A' : 'V'}`} 
+                            />
+                            <ReferenceLine 
+                                y={triggerLevel} 
+                                stroke="#f59e0b" 
+                                strokeDasharray="3 3" 
+                                label={{ position: 'right', value: 'TRG', fill: '#f59e0b', fontSize: 9, fontWeight: 'bold' }} 
+                            />
+                            <Line 
+                                type="monotone" 
+                                dataKey="v" 
+                                stroke={mode === 'A' ? '#60a5fa' : '#10b981'} 
+                                strokeWidth={3} 
+                                dot={false} 
+                                isAnimationActive={false} 
+                            />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
