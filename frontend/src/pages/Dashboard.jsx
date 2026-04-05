@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import { Play, Pause, Circle, Square, Zap, Thermometer, Activity, Settings, Wifi, WifiOff, Sparkles, X } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai'; 
+
+// FIX 1: Import the brand new SDK
+import { GoogleGenAI } from '@google/genai'; 
 
 export default function Dashboard({ socket }) {
     const [reading, setReading] = useState('0.00');
@@ -74,7 +76,7 @@ export default function Dashboard({ socket }) {
         }
     };
 
-    // --- AI INFERENCE LOGIC ---
+    // --- UPDATED AI INFERENCE LOGIC ---
     const analyzeHardware = async () => {
         setIsAnalyzing(true);
         setAiAnalysis("Extracting telemetry buffer and consulting AI Model...");
@@ -84,10 +86,8 @@ export default function Dashboard({ socket }) {
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
             if (!apiKey) throw new Error("Missing API Key");
 
-            const genAI = new GoogleGenerativeAI(apiKey);
-            
-            // FIX 1: Use the universally available 'gemini-pro' model
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+            // FIX 2: Initialize the new client with your API key explicitly
+            const ai = new GoogleGenAI({ apiKey: apiKey });
 
             const voltageArray = chartData.map(d => d.v.toFixed(2));
 
@@ -104,11 +104,18 @@ export default function Dashboard({ socket }) {
             Provide a professional, highly technical 2-sentence diagnosis. Do not use markdown.
             `;
 
-            const result = await model.generateContent(prompt);
-            setAiAnalysis(result.response.text());
+            // FIX 3: Use the new generation syntax and the 2.5 flash model
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+
+            // FIX 4: The new SDK uses response.text directly instead of response.text()
+            setAiAnalysis(response.text);
+            
         } catch (error) {
             console.error("AI Error:", error);
-            setAiAnalysis("AI Diagnostic failed. Please ensure your API key is correct and has access to the Gemini Pro model.");
+            setAiAnalysis("AI Diagnostic failed. Please ensure your VITE_GEMINI_API_KEY is correct and active.");
         } finally {
             setIsAnalyzing(false);
         }
@@ -210,7 +217,6 @@ export default function Dashboard({ socket }) {
                         </div>
                         <div className="flex items-center gap-3">
                             
-                            {/* AI DIAGNOSE BUTTON */}
                             <button onClick={analyzeHardware} disabled={isAnalyzing || chartData.length === 0}
                                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border flex items-center gap-2 ${
                                     isAnalyzing ? 'bg-purple-500/20 border-purple-500 text-purple-400 animate-pulse' : 'bg-[#0d1117] border-purple-500/30 text-purple-400 hover:border-purple-500 hover:bg-purple-500/10'
@@ -240,8 +246,7 @@ export default function Dashboard({ socket }) {
                         </div>
                     </div>
 
-                    <div className="flex-1 p-6 bg-[#0d1117] relative">
-                        {/* FIX 2: Explicitly hardcoded height={350} inside ResponsiveContainer to prevent the -1 error */}
+                    <div className="flex-1 p-6 bg-[#0d1117] relative min-h-[300px]">
                         <ResponsiveContainer width="100%" height={350}>
                             <LineChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
