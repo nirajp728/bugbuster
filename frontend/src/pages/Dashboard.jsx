@@ -77,40 +77,50 @@ export default function Dashboard({ socket }) {
     };
 
     // --- UPDATED AI INFERENCE LOGIC ---
+   // --- AI INFERENCE LOGIC (15-Second Window) ---
     const analyzeHardware = async () => {
         setIsAnalyzing(true);
-        setAiAnalysis("Extracting telemetry buffer and consulting AI Model...");
+        setAiAnalysis("Extracting 15-second telemetry buffer and consulting AI...");
         triggerHaptic();
         
         try {
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
             if (!apiKey) throw new Error("Missing API Key");
 
-            // FIX 2: Initialize the new client with your API key explicitly
             const ai = new GoogleGenAI({ apiKey: apiKey });
 
-            const voltageArray = chartData.map(d => d.v.toFixed(2));
+            // 1. Calculate the 15-second window
+            const currentTime = Date.now();
+            const fifteenSecondsAgo = currentTime - 15000; // 15000 milliseconds
 
-            const prompt = `
-            You are an expert embedded systems engineer monitoring a live STM32 microcontroller.
-            Here is a snapshot of the current hardware state:
-            - Mode: ${mode === 'A' ? 'Ammeter' : 'Voltmeter'}
-            - System Temperature: ${temp}°C
-            - Target Frequency: ${freq}Hz
-            - Regulator Output: ${vOut}V
-            - Last 60 Data Readings: [${voltageArray.join(', ')}]
+            // 2. Filter the chart data to ONLY include points from the last 15 seconds
+            const recentData = chartData.filter(d => d.t >= fifteenSecondsAgo);
             
-            Analyze this data. Is the temperature dangerous (>60C)? Are the readings stable or noisy? 
-            Provide a professional, highly technical 2-sentence diagnosis. Do not use markdown.
+            // 3. Extract just the values
+            const voltageArray = recentData.map(d => d.v.toFixed(2));
+
+            // 4. The upgraded testbench prompt
+            const prompt = `
+            You are an expert embedded systems engineer monitoring an STM32-based digital testbench.
+            Below is the telemetry data captured over the exact last 15 seconds.
+            
+            [Hardware State]
+            - Active Mode: ${mode === 'A' ? 'Ammeter' : 'Voltmeter / DSO'}
+            - System Temp: ${temp}°C
+            - Function Gen Target: ${freq}Hz
+            - V-Regulator Output: ${vOut}V
+            
+            [15-Second Telemetry Buffer (${voltageArray.length} samples)]
+            [${voltageArray.join(', ')}]
+            
+            Analyze this 15-second diagnostic window. Identify any thermal risks (>60C), waveform instability, noise, or deviations from the target frequency/voltage. Provide a highly technical, professional 2-sentence diagnosis. Do not use markdown.
             `;
 
-            // FIX 3: Use the new generation syntax and the 2.5 flash model
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents: prompt,
             });
 
-            // FIX 4: The new SDK uses response.text directly instead of response.text()
             setAiAnalysis(response.text);
             
         } catch (error) {
