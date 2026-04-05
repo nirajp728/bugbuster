@@ -85,7 +85,9 @@ export default function Dashboard({ socket }) {
             if (!apiKey) throw new Error("Missing API Key");
 
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            
+            // FIX 1: Use the universally available 'gemini-pro' model
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
             const voltageArray = chartData.map(d => d.v.toFixed(2));
 
@@ -105,8 +107,8 @@ export default function Dashboard({ socket }) {
             const result = await model.generateContent(prompt);
             setAiAnalysis(result.response.text());
         } catch (error) {
-            console.error(error);
-            setAiAnalysis("AI Diagnostic failed. Please ensure your VITE_GEMINI_API_KEY is correct and active.");
+            console.error("AI Error:", error);
+            setAiAnalysis("AI Diagnostic failed. Please ensure your API key is correct and has access to the Gemini Pro model.");
         } finally {
             setIsAnalyzing(false);
         }
@@ -238,8 +240,9 @@ export default function Dashboard({ socket }) {
                         </div>
                     </div>
 
-                    <div className="flex-1 p-6 bg-[#0d1117] relative min-h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="flex-1 p-6 bg-[#0d1117] relative">
+                        {/* FIX 2: Explicitly hardcoded height={350} inside ResponsiveContainer to prevent the -1 error */}
+                        <ResponsiveContainer width="100%" height={350}>
                             <LineChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
                                 <XAxis dataKey="t" hide />
