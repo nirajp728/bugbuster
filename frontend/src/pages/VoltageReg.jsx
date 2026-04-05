@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Play } from 'lucide-react';
 
 export default function VoltageReg({ socket }) {
     const [vreg, setVreg] = useState(0.0);
@@ -20,64 +21,65 @@ export default function VoltageReg({ socket }) {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <h2 className="text-xl font-bold text-gray-300 md:hidden mb-4">Voltage Reg</h2>
+        <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 mt-10">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-gray-300 md:hidden mb-4 transition-colors">Voltage Reg</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Control Panel */}
-                <div className="bg-[#161b22] border border-gray-800 p-6 md:p-8 rounded-xl shadow-lg flex flex-col justify-between">
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-400 tracking-wider mb-6 uppercase">Output Voltage</h3>
-                        
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* SET VOLTAGE CARD */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-gray-800 p-6 md:p-8 rounded-3xl shadow-xl dark:shadow-2xl transition-colors duration-300">
+                    <h3 className="text-xs font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-10 transition-colors">Output Voltage</h3>
+                    
+                    <div className="space-y-8">
                         <div className="space-y-4">
-                            <div className="flex justify-between items-end mb-2">
-                                <label className="block text-sm text-gray-400">Set Voltage (0 - 12 V)</label>
-                                <div className="relative">
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wide transition-colors">Set Voltage (0 - 12 V)</label>
+                                <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-gray-700 rounded-lg px-4 py-2 transition-colors">
                                     <input 
                                         type="number" 
                                         value={vreg} 
                                         onChange={(e) => setVreg(Number(e.target.value))}
-                                        className="w-24 bg-[#0d1117] border border-gray-700 text-emerald-400 text-right p-2 pr-8 rounded-lg font-mono outline-none focus:border-emerald-500"
+                                        className="w-16 bg-transparent text-emerald-600 dark:text-emerald-400 text-right font-mono font-bold text-lg outline-none appearance-none"
                                         min="0" max="12" step="0.1"
                                     />
-                                    <span className="absolute right-3 top-2 text-gray-500 font-mono">V</span>
+                                    <span className="text-slate-400 dark:text-gray-500 font-bold text-xs">V</span>
                                 </div>
                             </div>
-                            
                             <input 
                                 type="range" 
                                 min="0" max="12" step="0.1"
                                 value={vreg} 
                                 onChange={(e) => setVreg(Number(e.target.value))}
-                                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                className="w-full h-2 bg-slate-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-colors"
                             />
                         </div>
-                    </div>
 
-                    <button onClick={handleSend} 
-                        className="mt-8 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
-                        <span>▶</span> SET VOLTAGE
-                    </button>
+                        <button onClick={handleSend} 
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm mt-8">
+                            <Play size={16} fill="white" /> SET VOLTAGE
+                        </button>
+                    </div>
                 </div>
 
-                {/* Live Feedback Panel */}
-                <div className="bg-[#161b22] border border-gray-800 p-6 md:p-8 rounded-xl shadow-lg">
-                    <h3 className="text-sm font-semibold text-gray-400 tracking-wider mb-6 uppercase">Live Feedback</h3>
+                {/* LIVE FEEDBACK CARD */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-gray-800 p-6 md:p-8 rounded-3xl shadow-xl dark:shadow-2xl transition-colors duration-300">
+                    <h3 className="text-xs font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-8 transition-colors">Live Feedback</h3>
                     
                     <div className="space-y-6">
                         {/* Boost Output Card */}
-                        <div className="bg-[#0d1117] border border-gray-800 rounded-lg p-5 flex items-center justify-between">
-                            <div className="text-gray-400 font-medium">Boost Output</div>
-                            <div className="text-3xl font-mono font-bold text-amber-500 tracking-wider">
-                                {boostOut} <span className="text-xl text-amber-700">V</span>
+                        <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-gray-800 p-6 rounded-2xl flex justify-between items-center transition-colors shadow-sm dark:shadow-none">
+                            <span className="text-slate-500 dark:text-gray-400 font-bold text-[10px] uppercase tracking-wide">Boost Output</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-amber-500 font-mono font-black text-3xl tracking-tighter">{boostOut}</span>
+                                <span className="text-amber-600 dark:text-amber-500 font-bold text-sm">V</span>
                             </div>
                         </div>
 
                         {/* Temperature Card */}
-                        <div className="bg-[#0d1117] border border-gray-800 rounded-lg p-5 flex items-center justify-between">
-                            <div className="text-gray-400 font-medium">System Temp</div>
-                            <div className="text-3xl font-mono font-bold text-red-500 tracking-wider">
-                                {temp} <span className="text-xl text-red-800">°C</span>
+                        <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-gray-800 p-6 rounded-2xl flex justify-between items-center transition-colors shadow-sm dark:shadow-none">
+                            <span className="text-slate-500 dark:text-gray-400 font-bold text-[10px] uppercase tracking-wide">System Temp</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-red-500 font-mono font-black text-3xl tracking-tighter">{temp}</span>
+                                <span className="text-red-600 dark:text-red-500 font-bold text-sm">°C</span>
                             </div>
                         </div>
                     </div>
