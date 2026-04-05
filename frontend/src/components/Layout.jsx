@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Activity, AudioWaveform, Battery, History, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Activity, AudioWaveform, Battery, History, LogOut, Sun, Moon, Zap } from 'lucide-react';
 
 export default function Layout({ children, setToken }) {
     const location = useLocation();
@@ -123,13 +123,5 @@ export default function Layout({ children, setToken }) {
                 </button>
             </nav>
         </div>
-    );
-}
-
-function Zap({ size, className }) {
-    return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
     );
 }
