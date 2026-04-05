@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, CartesianGrid, Tooltip } from 'recharts';
-import { Play, Pause, Circle, Square, Zap, ChevronDown } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
+import { Play, Pause, Circle, Square, Zap, Activity } from 'lucide-react';
 
 export default function Multimeter({ socket }) {
     const [mode, setMode] = useState('V');
@@ -77,7 +77,8 @@ export default function Multimeter({ socket }) {
         <div className="space-y-6 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Area */}
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-gray-100 transition-colors">Lab Terminal</h2>
+                {/* CACHE BUSTER: Changed title slightly to Multimeter Terminal */}
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-gray-100 transition-colors">Multimeter Terminal</h2>
                 <div className="flex gap-2">
                     {isLogging && (
                         <button onClick={exportToCSV} className="text-xs bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 px-3 py-1 rounded-md hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all shadow-sm">
