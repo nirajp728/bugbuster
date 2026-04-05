@@ -6,10 +6,10 @@ export default function Layout({ children, setToken }) {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Theme Management State (Defaults to dark mode for the lab feel)
+    // Theme Management State
     const [isDark, setIsDark] = useState(true);
 
-    // Apply the 'dark' class to the root HTML element whenever you click the toggle
+    // Apply the 'dark' class to the root HTML element
     useEffect(() => {
         if (isDark) {
             document.documentElement.classList.add('dark');
@@ -93,15 +93,17 @@ export default function Layout({ children, setToken }) {
                 </div>
             </main>
 
-            {/* MOBILE BOTTOM NAVIGATION */}
-            <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] bg-white/90 dark:bg-[#161b22]/90 backdrop-blur-xl border border-slate-200/50 dark:border-gray-700/50 h-18 rounded-3xl z-50 flex justify-around items-center px-2 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 transition-colors duration-300">
-                {navItems.slice(0, 3).map((item) => {
+            {/* MOBILE BOTTOM NAVIGATION (Scrollable Carousel) */}
+            <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] bg-white/90 dark:bg-[#161b22]/90 backdrop-blur-xl border border-slate-200/50 dark:border-gray-700/50 h-[72px] rounded-3xl z-50 flex items-center justify-start flex-nowrap overflow-x-auto gap-2 px-3 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 transition-colors duration-300 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                
+                {/* Iterate over ALL items, NO slicing */}
+                {navItems.map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
                         <Link 
                             key={item.path} 
                             to={item.path}
-                            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all ${
+                            className={`shrink-0 flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all ${
                                 isActive ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' : 'text-slate-400 dark:text-gray-500'
                             }`}
                         >
@@ -111,13 +113,17 @@ export default function Layout({ children, setToken }) {
                     );
                 })}
                 
+                {/* Divider Line */}
+                <div className="shrink-0 w-[1px] h-8 bg-slate-200 dark:bg-gray-700 mx-1"></div>
+                
                 {/* THEME TOGGLE (MOBILE) */}
-                <button onClick={() => setIsDark(!isDark)} className="flex flex-col items-center justify-center w-14 h-14 text-slate-400 dark:text-gray-500 hover:text-emerald-500 transition-colors">
+                <button onClick={() => setIsDark(!isDark)} className="shrink-0 flex flex-col items-center justify-center w-16 h-14 text-slate-400 dark:text-gray-500 hover:text-emerald-500 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
                     {isDark ? <Sun size={20} /> : <Moon size={20} />}
                     <span className="text-[9px] mt-1 font-bold">Theme</span>
                 </button>
 
-                <button onClick={handleLogout} className="flex flex-col items-center justify-center w-14 h-14 text-red-500/70 hover:text-red-500 transition-colors">
+                {/* EXIT BUTTON */}
+                <button onClick={handleLogout} className="shrink-0 flex flex-col items-center justify-center w-16 h-14 text-red-500/70 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors mr-2">
                     <LogOut size={20} />
                     <span className="text-[9px] mt-1 font-bold">Exit</span>
                 </button>
